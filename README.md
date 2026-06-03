@@ -13,5 +13,5 @@ M0:
   
   Responsibilities - Cseh Balázs: reciever, protocol
   
-                      Bačová Vivien: sender, documentation
+  Bačová Vivien: sender, documentation
 
