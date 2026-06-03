@@ -11,7 +11,9 @@ M0:
   
   Tool versions - 
   
-  Responsibilities - Cseh Balázs: reciever, protocol
+  Responsibilities -
+  
+  Cseh Balázs: reciever, protocol
   
   Bačová Vivien: sender, documentation
 
