@@ -30,6 +30,10 @@
 #include "esp_vfs_eventfd.h"
 #include "nvs_flash.h"
 #include "ot_examples_common.h"
+#include "openthread/udp.h"
+#include "openthread/ip6.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #if CONFIG_OPENTHREAD_STATE_INDICATOR_ENABLE
 #include "ot_led_strip.h"
@@ -40,6 +44,78 @@
 #endif // CONFIG_OPENTHREAD_CLI_ESP_EXTENSION
 
 #define TAG "ot_esp_cli"
+
+#define UDP_PORT 12345
+
+static void sender_task(void *arg);
+static void send_message(otInstance *instance);
+
+static void sender_task(void *arg)
+{
+    otInstance *instance = esp_openthread_get_instance();
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
+
+    esp_openthread_lock_acquire(portMAX_DELAY);
+
+    if (otThreadGetDeviceRole(instance) >= OT_DEVICE_ROLE_CHILD)
+    {
+        send_message(instance);
+    }
+
+    esp_openthread_lock_release();
+
+
+    vTaskDelete(NULL);   // kill the task after sending
+}
+
+static void send_message(otInstance *instance)
+{
+    otUdpSocket socket;
+    otMessageInfo info;
+
+    memset(&socket, 0, sizeof(socket));
+    memset(&info, 0, sizeof(info));
+
+    otIp6AddressFromString(
+        "fd24:76cc:c5e2:a6e6:0:ff:fe00:5c00",
+        &info.mPeerAddr);
+
+    info.mPeerPort = UDP_PORT;
+
+    otError error = otUdpOpen(instance, &socket, NULL, NULL);
+
+    if (error != OT_ERROR_NONE)
+    {
+        ESP_LOGE(TAG, "UDP open failed");
+        return;
+    }
+
+    otMessage *msg = otUdpNewMessage(instance, NULL);
+
+    if (msg == NULL)
+    {
+        ESP_LOGE(TAG, "Message allocation failed");
+        return;
+    }
+
+    const char *text = "HELLO_FROM_C6";
+
+    otMessageAppend(msg, text, strlen(text));
+
+    error = otUdpSend(instance, &socket, msg, &info);
+
+    if (error == OT_ERROR_NONE)
+    {
+        ESP_LOGI(TAG, "Sent: %s", text);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Send failed (%d)", error);
+    }
+
+    otUdpClose(instance, &socket);
+}
 
 void app_main(void)
 {
@@ -71,6 +147,16 @@ void app_main(void)
     };
 
     ESP_ERROR_CHECK(esp_openthread_start(&config));
+
+    xTaskCreate(
+    sender_task,
+    "sender_task",
+    4096,
+    NULL,
+    5,
+    NULL
+);
+
 #if CONFIG_OPENTHREAD_CLI_ESP_EXTENSION
     esp_cli_custom_command_init();
 #endif
