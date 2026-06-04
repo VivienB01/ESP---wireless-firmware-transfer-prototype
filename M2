@@ -1,10 +1,25 @@
+before flashing the code
+
+idf.py menuconfig -> we may check if the USB port is turned on if not -> Turn it on 
+
+after flashing
+ot dataset new
+ot dataset commit active
+ot ifconfig up
+ot thread start
+
 Open thread channel opened
 ESP can communicate through the channel with itself for now
+
+
 
 commands inside powershell after the flash we get the OpenThread console
 ot help /we can get all the commands
 
 ot state /to check what state our channel is currently in
+
+
+
 ot  thread start /we start the channel, this first might change the state from disabled -> detached but after a bit of waiting it should run and start fully,
 wait till you get the state into "Leader", it shows in the terminal while running but if you want a quick check just run "ot state"
 
