@@ -20,7 +20,7 @@ Packet RECIEVER:
 
    -> set these things: channel output to USB, input to CRLF, automatic openthread connection.
 
-2. The channel state should be either (Leader,router) (if it isn't you might just need to wait a little for it to initialize, if it still isn't check if the channel is open or type in 
+2. The channel state should be either (Leader,router) (if it isn't you might just need to wait a little for it to initialize, if it still isn't check if the port is open 
 ```
 ot udp open
 ```
