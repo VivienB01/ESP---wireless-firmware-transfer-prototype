@@ -6,7 +6,7 @@ Packet SENDER:
 
    -> idf.py menuconfig
 
-   -> set these things: USB, channel output to CRLF, input, automatic openthread connection.
+   -> set these things: channel output to USB, input to CRLF, automatic openthread connection.
    
 3. monitor code, packets should be sent automatically from #1 to #100.
 
