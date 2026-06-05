@@ -3,8 +3,14 @@
  *
  * SPDX-License-Identifier: CC0-1.0
  *
- * OpenThread UDP Receiver Example
- */
+ * OpenThread Command Line Example
+ *
+ * This example code is in the Public Domain (or CC0 licensed, at your option.)
+ *
+ * Unless required by applicable law or agreed to in writing, this
+ * software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied.
+*/
 
 #include <stdio.h>
 #include <unistd.h>
@@ -24,12 +30,10 @@
 #include "esp_vfs_eventfd.h"
 #include "nvs_flash.h"
 #include "ot_examples_common.h"
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
 #include "openthread/udp.h"
 #include "openthread/ip6.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #if CONFIG_OPENTHREAD_STATE_INDICATOR_ENABLE
 #include "ot_led_strip.h"
@@ -37,93 +41,88 @@
 
 #if CONFIG_OPENTHREAD_CLI_ESP_EXTENSION
 #include "esp_ot_cli_extension.h"
-#endif
+#endif // CONFIG_OPENTHREAD_CLI_ESP_EXTENSION
 
-#define TAG "RX"
+#define TAG "ot_esp_cli"
+
 #define UDP_PORT 12345
 
-static otUdpSocket s_udp_socket;
+static void sender_task(void *arg);
+static void send_message(otInstance *instance);
 
-static void udp_receive(
-    void *aContext,
-    otMessage *aMessage,
-    const otMessageInfo *aMessageInfo);
-
-static void udp_receiver_init(void);
-
-static void udp_receive(
-    void *aContext,
-    otMessage *aMessage,
-    const otMessageInfo *aMessageInfo)
-{
-    (void)aContext;
-    (void)aMessageInfo;
-
-    char buf[128];
-
-    int len = otMessageRead(
-        aMessage,
-        otMessageGetOffset(aMessage),
-        buf,
-        sizeof(buf) - 1);
-
-    if (len < 0)
-    {
-        ESP_LOGE(TAG, "Failed to read message");
-        return;
-    }
-
-    buf[len] = '\0';
-
-    ESP_LOGI(TAG, "Received: %s", buf);
-}
-
-static void udp_receiver_init(void)
+static void sender_task(void *arg)
 {
     otInstance *instance = esp_openthread_get_instance();
 
+    vTaskDelay(pdMS_TO_TICKS(10000));
+
     esp_openthread_lock_acquire(portMAX_DELAY);
 
-    otSockAddr listen_addr;
-    memset(&listen_addr, 0, sizeof(listen_addr));
-
-    listen_addr.mPort = UDP_PORT;
-
-    otError error;
-
-    error = otUdpOpen(
-        instance,
-        &s_udp_socket,
-        udp_receive,
-        NULL);
-
-    if (error != OT_ERROR_NONE)
+    if (otThreadGetDeviceRole(instance) >= OT_DEVICE_ROLE_CHILD)
     {
-        ESP_LOGE(TAG, "otUdpOpen failed (%d)", error);
-        esp_openthread_lock_release();
-        return;
-    }
-
-    error = otUdpBind(
-        instance,
-        &s_udp_socket,
-        &listen_addr,
-        OT_NETIF_THREAD_HOST);
-
-    if (error != OT_ERROR_NONE)
-    {
-        ESP_LOGE(TAG, "otUdpBind failed (%d)", error);
-        esp_openthread_lock_release();
-        return;
+        send_message(instance);
     }
 
     esp_openthread_lock_release();
 
-    ESP_LOGI(TAG, "Listening on UDP port %d", UDP_PORT);
+
+    vTaskDelete(NULL);   // kill the task after sending
+}
+
+static void send_message(otInstance *instance)
+{
+    otUdpSocket socket;
+    otMessageInfo info;
+
+    memset(&socket, 0, sizeof(socket));
+    memset(&info, 0, sizeof(info));
+
+    otIp6AddressFromString(
+        "fd24:76cc:c5e2:a6e6:0:ff:fe00:5c00",
+        &info.mPeerAddr);
+
+    info.mPeerPort = UDP_PORT;
+
+    otError error = otUdpOpen(instance, &socket, NULL, NULL);
+
+    if (error != OT_ERROR_NONE)
+    {
+        ESP_LOGE(TAG, "UDP open failed");
+        return;
+    }
+
+    otMessage *msg = otUdpNewMessage(instance, NULL);
+
+    if (msg == NULL)
+    {
+        ESP_LOGE(TAG, "Message allocation failed");
+        return;
+    }
+
+    const char *text = "HELLO_FROM_C6";
+
+    otMessageAppend(msg, text, strlen(text));
+
+    error = otUdpSend(instance, &socket, msg, &info);
+
+    if (error == OT_ERROR_NONE)
+    {
+        ESP_LOGI(TAG, "Sent: %s", text);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Send failed (%d)", error);
+    }
+
+    otUdpClose(instance, &socket);
 }
 
 void app_main(void)
 {
+    // Used eventfds:
+    // * netif
+    // * ot task queue
+    // * radio driver
     esp_vfs_eventfd_config_t eventfd_config = {
         .max_fds = 3,
     };
@@ -149,18 +148,21 @@ void app_main(void)
 
     ESP_ERROR_CHECK(esp_openthread_start(&config));
 
+    xTaskCreate(
+    sender_task,
+    "sender_task",
+    4096,
+    NULL,
+    5,
+    NULL
+);
+
 #if CONFIG_OPENTHREAD_CLI_ESP_EXTENSION
     esp_cli_custom_command_init();
 #endif
-
 #if CONFIG_OPENTHREAD_STATE_INDICATOR_ENABLE
-    ESP_ERROR_CHECK(
-        esp_openthread_state_indicator_init(
-            esp_openthread_get_instance()));
+    ESP_ERROR_CHECK(esp_openthread_state_indicator_init(esp_openthread_get_instance()));
 #endif
-
-    udp_receiver_init();
-
 #if CONFIG_OPENTHREAD_NETWORK_AUTO_START
     ot_network_auto_start();
 #endif
