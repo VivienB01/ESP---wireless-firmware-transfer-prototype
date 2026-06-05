@@ -34,3 +34,8 @@ ot udp open/ opens the port
 ot udp bind :: 1111 / we can set the ports "name" channel with whatever 4 digits it doesnt have to be 1111 it can be custom
 
 ot udp send (copy the ipv6 address that we mentioned earlier here) (custom port)1111 "Custom message"
+
+
+sender fix: 
+
+- set channel output to usb, input to crlf, enable openthread auto
