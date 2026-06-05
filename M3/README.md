@@ -1,6 +1,8 @@
 Packet SENDER:
 
-1. flash code, openthread communication is created automatically. IF NOT -> idf.py menuconfig
+1. flash code, openthread communication is created automatically.
+
+   IF NOT -> idf.py menuconfig
 
    -> set these things: USB, channel output, input, automatic openthread connection.
    
