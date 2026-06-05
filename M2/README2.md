@@ -3,10 +3,15 @@ before flashing the code
 idf.py menuconfig -> we may check if the USB port is turned on if not -> Turn it on 
 
 after flashing
+
 ot dataset new
+
 ot dataset commit active
+
 ot ifconfig up
+
 ot thread start
+
 
 Open thread channel opened
 ESP can communicate through the channel with itself for now
