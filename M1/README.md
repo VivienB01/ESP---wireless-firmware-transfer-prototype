@@ -1,3 +1,4 @@
+## M1
 M1:
   - ESP - IDF was installed
   - Created a new project in Visual Studio Code
