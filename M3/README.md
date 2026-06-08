@@ -1,3 +1,5 @@
+## MILESTONE 3
+
 Packet SENDER:
 
 1. flash code, openthread communication is created automatically.
