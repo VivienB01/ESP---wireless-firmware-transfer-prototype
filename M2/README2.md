@@ -1,3 +1,5 @@
+## MILESTONE 2
+
 before flashing the code
 
 idf.py menuconfig -> we may check if the USB port is turned on if not -> Turn it on 
