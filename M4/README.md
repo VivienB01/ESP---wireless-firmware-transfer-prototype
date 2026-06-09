@@ -6,4 +6,5 @@ Reciever:
 
 Sender
 - Sending each packet after recieving the ACK from the previous packet
-- If recieved NACK retries 3 times
+- If recieved NACK retries 3 times it fails
+- packet number 21 is faulty on purpose to test the NACK/fail system
